@@ -2,3 +2,5 @@ pandas
 pyarrow
 sentence-transformers
 tqdm
+torch
+flash-attn>=2.0.0.post1

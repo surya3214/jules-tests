@@ -12,6 +12,12 @@ OUTPUT_DIR = os.getenv("OUTPUT_DIR", "./data/output")   # Folder where output Pa
 # Example: "./local_qwen_model" instead of "Qwen/Qwen3-Embedding-4B"
 MODEL_PATH = os.getenv("MODEL_PATH", "Qwen/Qwen3-Embedding-4B")
 
+# Hardware Optimization & Precision
+# Enable Flash Attention 2 (highly recommended for A100/H100 GPUs)
+USE_FLASH_ATTENTION = os.getenv("USE_FLASH_ATTENTION", "True").lower() == "true"
+# Precision: use "bfloat16" for modern GPUs (A100/H100), or "float16" / "float32"
+TORCH_DTYPE = os.getenv("TORCH_DTYPE", "bfloat16")
+
 # Model Task Configuration
 # The instruction prefix required by the Qwen3 embedding model.
 TASK_PROMPT = "Given a web search query, retrieve relevant passages that answer the query"

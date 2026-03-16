@@ -1,17 +1,40 @@
 import logging
 from typing import List, Any
 import numpy as np
+import torch
 from sentence_transformers import SentenceTransformer
 
 import config
 
 logger = logging.getLogger(__name__)
 
+def get_torch_dtype(dtype_str: str) -> torch.dtype:
+    """Map string config to torch datatype."""
+    mapping = {
+        "float16": torch.float16,
+        "bfloat16": torch.bfloat16,
+        "float32": torch.float32
+    }
+    return mapping.get(dtype_str.lower(), torch.float32)
+
 class Embedder:
     def __init__(self, model_path: str = config.MODEL_PATH):
         logger.info(f"Loading SentenceTransformer model from {model_path}...")
+
+        # Configure advanced kwargs (Flash Attention & Precision) for A100/H100
+        model_kwargs = {
+            "torch_dtype": get_torch_dtype(config.TORCH_DTYPE),
+        }
+
+        if config.USE_FLASH_ATTENTION:
+            logger.info("Enabling Flash Attention 2 (requires Ampere GPUs like A100 or newer)...")
+            model_kwargs["attn_implementation"] = "flash_attention_2"
+
         try:
-            self.model = SentenceTransformer(model_path)
+            self.model = SentenceTransformer(
+                model_path,
+                model_kwargs=model_kwargs
+            )
             # Start multi-process pool for multi-GPU encoding
             logger.info("Starting multi-process pool for multi-GPU execution...")
             self.pool = self.model.start_multi_process_pool()
