@@ -9,12 +9,31 @@ import config
 logger = logging.getLogger(__name__)
 
 def get_parquet_files(input_dir: str) -> list[str]:
-    """Retrieve all parquet files from the input directory recursively."""
+    """
+    Retrieve parquet files from the input directory recursively.
+    If config.TARGET_LANGUAGES is a list, it only includes files matching
+    the '{lang}_webfaq.parquet' format where {lang} is in the list.
+    """
     parquet_files = []
     for root, _, files in os.walk(input_dir):
         for file in files:
-            if file.endswith('.parquet'):
-                parquet_files.append(os.path.join(root, file))
+            if not file.endswith('.parquet'):
+                continue
+
+            # If language filtering is enabled, check the filename
+            if config.TARGET_LANGUAGES is not None:
+                # Expected format: {lang}_webfaq.parquet
+                if "_webfaq.parquet" in file:
+                    lang_prefix = file.replace("_webfaq.parquet", "")
+                    if lang_prefix not in config.TARGET_LANGUAGES:
+                        continue
+                else:
+                    # If it doesn't match the expected naming convention but filtering
+                    # is turned on, we should skip it to be safe.
+                    continue
+
+            parquet_files.append(os.path.join(root, file))
+
     return sorted(parquet_files)
 
 def get_output_path(output_dir: str, input_dir: str, file_path: str, chunk_index: int) -> str:

@@ -27,6 +27,11 @@ BATCH_SIZE = int(os.getenv("BATCH_SIZE", 64))           # Batch size for encodin
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", 100000))       # Number of rows per output Parquet shard
 QUESTION_COL = os.getenv("QUESTION_COL", "question")    # Name of the column containing the text to embed
 
+# Filtering Languages
+# If None, process all files. If set to a list (e.g., ["en", "fr"]),
+# only process files matching the pattern {lang}_webfaq.parquet
+TARGET_LANGUAGES = None  # Or os.getenv("TARGET_LANGUAGES").split(",") if provided via env
+
 # Identity Preservation
 # Set to True if you want to keep an identifier column to map embeddings back to the original rows.
 PRESERVE_ID_COL = os.getenv("PRESERVE_ID_COL", "True").lower() == "true"
