@@ -5,7 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 
 import config
-from src.dataset import get_parquet_files, yield_chunks
+from src.dataset import get_grouped_parquet_files, yield_interleaved_chunks
 from src.embedder import Embedder
 
 # Configure Logging
@@ -27,13 +27,16 @@ def main():
     logger.info(f"Using input directory: {config.INPUT_DIR}")
     logger.info(f"Using output directory: {config.OUTPUT_DIR}")
 
-    # Gather input files
-    input_files = get_parquet_files(config.INPUT_DIR)
-    if not input_files:
-        logger.warning(f"No .parquet files found in {config.INPUT_DIR}. Exiting.")
+    # Gather input files mapped by language
+    grouped_files = get_grouped_parquet_files(config.INPUT_DIR)
+
+    if not grouped_files:
+        logger.warning(f"No correctly formatted .parquet files found in {config.INPUT_DIR}. Exiting.")
         sys.exit(0)
 
-    logger.info(f"Found {len(input_files)} Parquet files to process.")
+    total_files = sum(len(files) for files in grouped_files.values())
+    languages_found = list(grouped_files.keys())
+    logger.info(f"Found {total_files} Parquet files across {len(languages_found)} languages: {languages_found}")
 
     # Initialize Embedder (starts multi-process pool)
     try:
@@ -43,11 +46,12 @@ def main():
         sys.exit(1)
 
     try:
-        # We loop through all the chunks lazily via the generator
-        chunk_generator = yield_chunks(input_files)
-        for output_shard_path, chunk_idx, df_chunk in tqdm(chunk_generator, desc="Processing Chunks"):
+        # We loop through interleaved chunks lazily via the round-robin generator
+        chunk_generator = yield_interleaved_chunks(grouped_files)
+
+        for lang, output_shard_path, chunk_idx, df_chunk in tqdm(chunk_generator, desc="Processing Interleaved Chunks"):
             num_rows = len(df_chunk)
-            logger.info(f"Encoding chunk {chunk_idx} into {output_shard_path} ({num_rows} rows)...")
+            logger.info(f"[{lang}] Encoding chunk {chunk_idx} into {output_shard_path} ({num_rows} rows)...")
 
             # Extract queries
             queries = df_chunk[config.QUESTION_COL].tolist()
